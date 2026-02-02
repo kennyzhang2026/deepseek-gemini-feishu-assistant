@@ -1,6 +1,6 @@
 """
 DeepSeek & Gemini 聊天助手 + 飞书知识库 Streamlit 应用
-主程序文件 - 阶段二：AI集成 + 聊天界面 (布局优化版)
+主程序文件 - 修复版：自动读取 Secrets + 图片上传 + 飞书集成
 """
 
 import streamlit as st
@@ -24,45 +24,28 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ==================== 代理设置初始化 ====================
-def initialize_proxy_settings():
-    """初始化代理设置"""
-    proxy_url = st.session_state.get('proxy_url', '').strip()
-    if proxy_url:
-        os.environ['http_proxy'] = proxy_url
-        os.environ['https_proxy'] = proxy_url
-
 # ==================== Session State 初始化 ====================
-if "deepseek_api_key" not in st.session_state:
-    st.session_state.deepseek_api_key = st.secrets.get("DEEPSEEK_API_KEY", "")
-    
-if "gemini_api_key" not in st.session_state:
-    st.session_state.gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
-    
-if "feishu_app_id" not in st.session_state:
-    st.session_state.feishu_app_id = st.secrets.get("FEISHU_APP_ID", "")
-    
-if "feishu_app_secret" not in st.session_state:
-    st.session_state.feishu_app_secret = st.secrets.get("FEISHU_APP_SECRET", "")
-    
-if "feishu_table_id" not in st.session_state:
-    st.session_state.feishu_table_id = st.secrets.get("FEISHU_TABLE_ID", "")
-    
-if "feishu_app_token" not in st.session_state:
-    st.session_state.feishu_app_token = st.secrets.get("FEISHU_BASE_ID", st.secrets.get("FEISHU_APP_TOKEN", ""))
+# 这里不仅初始化 Session，还会优先尝试从 Secrets 获取默认值
+def init_session_state(key, secret_name, default_value=""):
+    if key not in st.session_state:
+        # 尝试从 secrets 读取，读取不到则使用默认值
+        st.session_state[key] = st.secrets.get(secret_name, default_value)
+
+# 初始化所有关键变量
+init_session_state("deepseek_api_key", "DEEPSEEK_API_KEY")
+init_session_state("gemini_api_key", "GEMINI_API_KEY")
+init_session_state("feishu_app_id", "FEISHU_APP_ID")
+init_session_state("feishu_app_secret", "FEISHU_APP_SECRET")
+init_session_state("feishu_table_id", "FEISHU_TABLE_ID")
+# 飞书 Token 可能有两个名字，做一个兼容
+base_token = st.secrets.get("FEISHU_BASE_ID", st.secrets.get("FEISHU_APP_TOKEN", ""))
+init_session_state("feishu_app_token", "FEISHU_APP_TOKEN", base_token)
 
 if "proxy_url" not in st.session_state:
     st.session_state.proxy_url = "http://127.0.0.1:7890"
 
 if "gemini_model" not in st.session_state:
     st.session_state.gemini_model = "gemini-1.5-flash"
-
-if "config_status" not in st.session_state:
-    st.session_state.config_status = {
-        "deepseek": False,
-        "gemini": False,
-        "feishu": False
-    }
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -76,18 +59,27 @@ if "router" not in st.session_state:
 if "ai_clients_initialized" not in st.session_state:
     st.session_state.ai_clients_initialized = False
 
+# ==================== 辅助函数 ====================
+def initialize_proxy_settings():
+    """初始化代理设置"""
+    proxy_url = st.session_state.get('proxy_url', '').strip()
+    if proxy_url:
+        os.environ['http_proxy'] = proxy_url
+        os.environ['https_proxy'] = proxy_url
+
 initialize_proxy_settings()
 
-# ==================== 辅助函数 ====================
-def update_config_status():
-    st.session_state.config_status["deepseek"] = bool(st.session_state.deepseek_api_key.strip())
-    st.session_state.config_status["gemini"] = bool(st.session_state.gemini_api_key.strip())
-    st.session_state.config_status["feishu"] = bool(
+def get_config_status():
+    """检查配置是否完整"""
+    ds_status = bool(st.session_state.deepseek_api_key.strip())
+    gemini_status = bool(st.session_state.gemini_api_key.strip())
+    feishu_status = bool(
         st.session_state.feishu_app_id.strip() and
         st.session_state.feishu_app_secret.strip() and
         st.session_state.feishu_app_token.strip() and
         st.session_state.feishu_table_id.strip()
     )
+    return {"deepseek": ds_status, "gemini": gemini_status, "feishu": feishu_status}
 
 def get_status_emoji(status):
     return "🟢" if status else "🔴"
@@ -96,9 +88,8 @@ def initialize_ai_clients():
     if st.session_state.ai_clients_initialized:
         return True
     try:
-        if st.session_state.get('proxy_url'):
-            os.environ['http_proxy'] = st.session_state.proxy_url
-            os.environ['https_proxy'] = st.session_state.proxy_url
+        # 应用代理
+        initialize_proxy_settings()
         
         if st.session_state.deepseek_api_key:
             deepseek_client = DeepSeekClient(st.session_state.deepseek_api_key)
@@ -118,11 +109,12 @@ def initialize_ai_clients():
         return False
 
 def process_message(message: str, image_data=None):
-    if not st.session_state.config_status["deepseek"] and not st.session_state.config_status["gemini"]:
-        return {"success": False, "error": "请至少配置一个AI服务", "content": None}
+    status = get_config_status()
+    if not status["deepseek"] and not status["gemini"]:
+        return {"success": False, "error": "请至少配置一个 AI 服务的 API Key", "content": None}
     
-    if not initialize_ai_clients():
-        return {"success": False, "error": "AI客户端初始化失败", "content": None}
+    # 每次处理前确保客户端已初始化
+    initialize_ai_clients()
     
     try:
         if image_data:
@@ -140,12 +132,13 @@ def clear_chat_history():
     st.success("聊天历史已清空")
 
 def save_to_feishu():
-    if not st.session_state.config_status["feishu"]:
-        st.error("请先配置完整的飞书信息")
+    status = get_config_status()
+    if not status["feishu"]:
+        st.error("请先在左侧配置完整的飞书 App ID, Secret, Token 和 Table ID")
         return False
     
     if len(st.session_state.messages) < 2:
-        st.warning("没有完整的对话记录可保存")
+        st.warning("对话记录太短，无法保存")
         return False
     
     # 获取最近一轮对话
@@ -165,7 +158,7 @@ def save_to_feishu():
             break
     
     if not user_question or not ai_answer:
-        st.warning("未找到完整的对话记录")
+        st.warning("未找到完整的问答对")
         return False
     
     try:
@@ -175,7 +168,7 @@ def save_to_feishu():
             app_token=st.session_state.feishu_app_token
         )
         
-        with st.spinner("正在保存到飞书..."):
+        with st.spinner("正在保存到飞书多维表格..."):
             records = client.format_chat_record(
                 user_question=user_question,
                 ai_answer=ai_answer,
@@ -199,9 +192,9 @@ def save_to_feishu():
 
 # ==================== 侧边栏配置区域 ====================
 with st.sidebar:
-    st.title("⚙️ 设置")
+    st.title("⚙️ 设置面板")
 
-    # 🔥🔥 【调整】把上传图片放到最显眼的顶部 🔥🔥
+    # 1. 图片上传 (最上方)
     st.subheader("📷 图片上传")
     uploaded_image = st.file_uploader("上传图片给 Gemini", type=['png', 'jpg', 'jpeg'], key="image_uploader")
     if uploaded_image:
@@ -210,53 +203,37 @@ with st.sidebar:
     else:
         st.session_state.current_image = None
     
-    st.divider() # 分割线
+    st.divider()
 
-    # 原有的配置区域
-    with st.expander("🌐 网络与模型设置", expanded=False): # 默认收起，节省空间
-        proxy_url = st.text_input(
-            "代理地址",
-            value=st.session_state.proxy_url,
-            key="proxy_url_input",
-            on_change=lambda: setattr(st.session_state, 'proxy_url', st.session_state.proxy_url_input)
-        )
-        gemini_model = st.selectbox(
+    # 2. 网络与模型
+    with st.expander("🌐 网络与模型", expanded=False):
+        st.text_input("代理地址", key="proxy_url")
+        st.selectbox(
             "Gemini 模型",
             options=['gemini-1.5-flash', 'gemini-1.5-pro'],
-            index=0,
-            key="gemini_model_input",
-            on_change=lambda: setattr(st.session_state, 'gemini_model', st.session_state.gemini_model_input)
+            key="gemini_model"
         )
     
-    with st.expander("🔑 API Key 设置", expanded=False):
-        st.text_input(
-            "DeepSeek Key",
-            value=st.session_state.deepseek_api_key,
-            type="password",
-            key="deepseek_key_input",
-            on_change=lambda: setattr(st.session_state, 'deepseek_api_key', st.session_state.deepseek_key_input)
-        )
-        st.text_input(
-            "Gemini Key",
-            value=st.session_state.gemini_api_key,
-            type="password",
-            key="gemini_key_input",
-            on_change=lambda: setattr(st.session_state, 'gemini_api_key', st.session_state.gemini_key_input)
-        )
+    # 3. API Key 设置 (使用 Streamlit 原生绑定，自动读取 Secrets)
+    with st.expander("🔑 API Key 设置", expanded=True):
+        st.text_input("DeepSeek Key", type="password", key="deepseek_api_key")
+        st.text_input("Gemini Key", type="password", key="gemini_api_key")
 
-    with st.expander("📚 飞书配置", expanded=True): # 飞书配置默认展开
-        st.text_input("App ID", value=st.session_state.feishu_app_id, key="feishu_app_id_input", on_change=lambda: setattr(st.session_state, 'feishu_app_id', st.session_state.feishu_app_id_input))
-        st.text_input("App Secret", value=st.session_state.feishu_app_secret, type="password", key="feishu_app_secret_input", on_change=lambda: setattr(st.session_state, 'feishu_app_secret', st.session_state.feishu_app_secret_input))
-        st.text_input("Base ID (Token)", value=st.session_state.feishu_app_token, key="feishu_app_token_input", on_change=lambda: setattr(st.session_state, 'feishu_app_token', st.session_state.feishu_app_token_input))
-        st.text_input("Table ID", value=st.session_state.feishu_table_id, key="feishu_table_id_input", on_change=lambda: setattr(st.session_state, 'feishu_table_id', st.session_state.feishu_table_id_input))
+    # 4. 飞书配置 (使用 Streamlit 原生绑定，自动读取 Secrets)
+    with st.expander("📚 飞书配置", expanded=True):
+        st.text_input("App ID", key="feishu_app_id")
+        st.text_input("App Secret", type="password", key="feishu_app_secret")
+        st.text_input("Base ID (Token)", key="feishu_app_token")
+        st.text_input("Table ID", key="feishu_table_id")
     
-    update_config_status()
-    
-    st.subheader("状态")
-    sc1, sc2, sc3 = st.columns(3)
-    with sc1: st.metric("DeepSeek", get_status_emoji(st.session_state.config_status["deepseek"]))
-    with sc2: st.metric("Gemini", get_status_emoji(st.session_state.config_status["gemini"]))
-    with sc3: st.metric("飞书", get_status_emoji(st.session_state.config_status["feishu"]))
+    # 状态指示灯
+    status = get_config_status()
+    st.divider()
+    st.subheader("服务状态")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("DeepSeek", get_status_emoji(status["deepseek"]))
+    c2.metric("Gemini", get_status_emoji(status["gemini"]))
+    c3.metric("飞书", get_status_emoji(status["feishu"]))
     
     if st.button("🗑️ 清空聊天", use_container_width=True):
         clear_chat_history()
@@ -268,6 +245,9 @@ st.title("🤖 DeepSeek & Gemini 智能助手")
 chat_container = st.container()
 
 with chat_container:
+    if not st.session_state.messages:
+        st.info("👋 你好！我是你的 AI 助手。你可以问我问题，或者上传图片让我分析。")
+    
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             if message.get("image_preview"):
@@ -277,7 +257,6 @@ with chat_container:
                 st.caption(f"使用 {message['model']} 生成")
 
 # 输入框和底部按钮
-# 保持输入框在最下方
 st.divider()
 user_input = st.chat_input("输入您的问题...", key="chat_input")
 
@@ -314,9 +293,6 @@ if user_input:
         st.session_state.messages.append({"role": "assistant", "content": f"❌ {result['error']}", "model": "error"})
         with chat_container:
             with st.chat_message("assistant"): st.error(result["error"])
-    
-    # 注意：这里不自动清除 current_image，以便用户可以针对同一张图继续提问
-    # 如果想发完就清，可以在这里把 st.session_state.current_image = None (由于是 file_uploader，重置比较麻烦，通常保留即可)
 
 # 底部功能按钮
 col_btn1, col_btn2 = st.columns(2)
