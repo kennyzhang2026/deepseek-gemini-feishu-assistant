@@ -66,6 +66,11 @@ def initialize_proxy_settings():
     if proxy_url:
         os.environ['http_proxy'] = proxy_url
         os.environ['https_proxy'] = proxy_url
+    else:
+        # 🟢 关键修改：如果为空，必须显式删除环境变量！
+        # 否则之前设置的 127.0.0.1 还会一直残留，导致连接错误
+        os.environ.pop('http_proxy', None)
+        os.environ.pop('https_proxy', None)
 
 initialize_proxy_settings()
 
