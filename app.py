@@ -42,7 +42,7 @@ base_token = st.secrets.get("FEISHU_BASE_ID", st.secrets.get("FEISHU_APP_TOKEN",
 init_session_state("feishu_app_token", "FEISHU_APP_TOKEN", base_token)
 
 if "proxy_url" not in st.session_state:
-    st.session_state.proxy_url = "http://127.0.0.1:7890"
+    st.session_state.proxy_url = ""
 
 if "gemini_model" not in st.session_state:
     st.session_state.gemini_model = "gemini-1.5-flash"
