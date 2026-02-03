@@ -1,13 +1,28 @@
 from google import genai
 from google.genai import types
+import platform  # <--- 关键！报错就是因为缺这一行
 import streamlit as st
 import os
 import PIL.Image
 from datetime import datetime
 
 # --- 强制代理 (保持不变) ---
-os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
-os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
+#os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
+#os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
+# --- 智能代理设置 ---
+# 如果检测到是 Windows 系统 (你的本地电脑)，就开启代理
+# 如果是 Linux 系统 (Streamlit Cloud 云端)，就不开启
+system_name = platform.system()
+if system_name == "Windows":
+    print("🖥️ 检测到本地 Windows 环境，已自动开启代理...")
+    os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
+    os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
+else:
+    print("☁️ 检测到云端/Linux 环境，使用直连模式...")
+    # 确保云端没有残留的代理设置
+    if 'HTTPS_PROXY' in os.environ: del os.environ['HTTPS_PROXY']
+    if 'HTTP_PROXY' in os.environ: del os.environ['HTTP_PROXY']
+# ------------------
 
 class GeminiClient:
     def __init__(self, api_key=None):
