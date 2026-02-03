@@ -1,201 +1,71 @@
-# DeepSeek & Gemini Assistant with Feishu Knowledge Base
-
-一个基于 Streamlit 的智能聊天助手应用，集成 DeepSeek 和 Gemini AI 模型，实现智能路由聊天（文本用 DeepSeek，图片用 Gemini），并将有价值的对话记录一键保存到飞书多维表格，作为个人知识库积累。
-
-## ✨ 核心功能
-
-### 🤖 智能路由聊天系统
-- **文本对话**：自动调用 DeepSeek 模型（通过 OpenAI 兼容接口）
-- **图片理解**：上传图片自动切换调用 Gemini 模型（支持多模态理解）
-- **智能路由**：根据输入类型自动选择最合适的 AI 模型，无需手动切换
-- **对话历史**：完整的对话历史在 Session State 中维护
-
-### 📊 飞书知识库集成
-- **一键保存**：聊天框下方提供"保存到飞书"按钮
-- **保存记录**：保存用户问题、AI回答、使用模型、时间戳到飞书多维表格
-- **状态反馈**：实时显示写入状态（成功/失败提示）
-- **数据持久化**：将有价值的对话记录永久保存到飞书知识库
-
-### 🔐 安全配置管理
-- **BYOK 模式**：Bring Your Own Keys - 用户自行提供 API 密钥
-- **会话存储**：API 密钥仅保存在 Streamlit Session State 中，刷新页面后需要重新输入
-- **隐私保护**：不持久化敏感信息到本地文件或日志
-- **配置验证**：实时验证 API 密钥和飞书配置的有效性
-
+<MARKDOWN>
+# 🤖 AI Assistant (Gemini 2.0 Flash) with Feishu
+> **v2.0 Stable**: 专注稳定性的多模态智能助手，集成飞书知识库自动存档。
+## 📖 项目简介
+这是一个基于 Streamlit 构建的生产力级 AI 助手。
+经历了 v1.0 MVP 的探索，**v2.0 版本** 确立了“稳定性优先”的原则。我们移除了复杂的模型路由和不稳定的 DeepSeek 接口，全面采用 **Google Gemini 2.0 Flash**，实现了毫秒级的图文响应速度。同时，重构了飞书集成模块，支持将对话历史批量同步至个人知识库。
+## ✨ 核心功能 (v2.0)
+### ⚡️ 极速多模态体验
+- **Gemini 2.0 Flash 驱动**：单一模型解决所有问题，无论是纯文本对话还是复杂的图片分析，均能秒级响应。
+- **视觉稳定性增强**：内置图片自动压缩算法（Max 800px），彻底解决了上传大图导致连接中断（Server disconnected）的问题。
+- **沉浸式 UI**：移除了侧边栏繁杂的 Key 输入框，界面更加干净专注于内容。
+### 📚 飞书知识库闭环
+- **存最近一轮**：一键保存当前最有价值的一组问答（User + AI）。
+- **存全部历史 (New)**：
+    - **智能遍历**：算法自动识别 Session State 中的所有历史消息。
+    - **成对匹配**：自动将 User 和 Assistant 的消息组合成问答对。
+    - **可视化进度**：提供实时进度条反馈，批量写入过程一目了然。
+### 🛡 安全与配置
+- **Secrets 管理**：放弃前端输入 Key 的方式，改用后台 `secrets.toml` 统一管理，避免密钥泄露风险。
+- **隐私保护**：对话数据仅在内存中流转或存入你私人的飞书表格，不保存本地日志。
 ## 🚀 快速开始
-
-### 前置要求
-- Python 3.9+
-- 有效的 API 密钥：
-  - DeepSeek API Key（从 [DeepSeek 官网](https://platform.deepseek.com/) 获取）
-  - Gemini API Key（从 [Google AI Studio](https://makersuite.google.com/app/apikey) 获取）
-  - 飞书应用配置（需要创建飞书开放平台应用）
-
-### 安装步骤
-
-1. **克隆项目**
-   ```bash
-   git clone <repository-url>
-   cd deepseek-gemini-feishu-assistant
-   ```
-
-2. **创建虚拟环境（推荐）**
-   ```bash
-   python -m venv venv
-   # Windows
-   venv\Scripts\activate
-   # Linux/Mac
-   source venv/bin/activate
-   ```
-
-3. **安装依赖**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **配置环境变量**
-   
-   创建 `.streamlit/secrets.toml` 文件（或通过 Streamlit 侧边栏手动输入）：
-   ```toml
-   # .streamlit/secrets.toml
-   DEEPSEEK_API_KEY = "your-deepseek-api-key"
-   GEMINI_API_KEY = "your-gemini-api-key"
-   FEISHU_APP_ID = "your-feishu-app-id"
-   FEISHU_APP_SECRET = "your-feishu-app-secret"
-   FEISHU_APP_TOKEN = "your-feishu-app-token"
-   FEISHU_TABLE_ID = "your-feishu-table-id"
-   ```
-
-   **注意**：`.streamlit/secrets.toml` 文件应添加到 `.gitignore` 中，避免 API 密钥泄露。
-
-5. **运行应用**
-   ```bash
-   streamlit run app.py
-   ```
-
-6. **访问应用**
-   打开浏览器访问 `http://localhost:8501`
-
-## 📁 项目结构
-
-```
-deepseek-gemini-feishu-assistant/
-├── app.py                    # Streamlit 主应用入口
-├── README.md                 # 项目说明文档（当前文件）
-├── requirements.txt          # Python 依赖包列表
-├── PRD.md                    # 产品需求文档
-├── clients/                  # AI 客户端模块
-│   ├── __init__.py
-│   ├── deepseek_client.py    # DeepSeek API 客户端
-│   ├── gemini_client.py      # Gemini API 客户端（支持图片理解）
-│   └── feishu_client.py      # 飞书多维表格 API 客户端
-├── utils/                    # 工具模块
-│   ├── __init__.py
-│   ├── router.py            # 智能路由逻辑（文本/图片判断）
-│   └── formatters.py        # 数据格式化工具
-├── tests/                    # 测试文件
-│   ├── __init__.py
-│   └── test_integration.py  # 端到端集成测试
-└── .streamlit/              # Streamlit 配置目录
-    └── secrets.toml         # API 密钥配置文件（需手动创建）
-```
-
-## 🔧 配置说明
-
-### API 密钥获取
-
-1. **DeepSeek API Key**
-   - 访问 [DeepSeek 控制台](https://platform.deepseek.com/)
-   - 注册账号并创建 API 密钥
-   - 注意：DeepSeek 使用 OpenAI 兼容接口
-
-2. **Gemini API Key**
-   - 访问 [Google AI Studio](https://makersuite.google.com/app/apikey)
-   - 创建 API 密钥（需要 Google 账号）
-   - 启用 Gemini API 服务
-
-3. **飞书应用配置**
-   - 访问 [飞书开放平台](https://open.feishu.cn/)
-   - 创建企业自建应用
-   - 获取以下信息：
-     - App ID
-     - App Secret
-     - App Token（多维表格所在应用的 token）
-     - Table ID（多维表格的 ID）
-
-### 运行模式
-
-应用支持两种配置方式：
-
-1. **通过 secrets.toml 文件配置**（推荐用于开发）
-   - 创建 `.streamlit/secrets.toml` 文件
-   - 应用启动时自动加载配置
-
-2. **通过侧边栏手动输入**（推荐用于生产）
-   - 每次会话开始时在侧边栏输入 API 密钥
-   - 配置信息仅保存在当前会话中，刷新页面后需要重新输入
-   - 提供更好的隐私保护
-
-## 🧪 测试
-
-运行集成测试确保所有功能正常工作：
-
+### 1. 安装依赖
 ```bash
-python -m pytest tests/test_integration.py -v
-```
+pip install -r requirements.txt
+2. 配置密钥 (必须)
+在项目根目录创建 .streamlit/secrets.toml 文件（注意：v2.0 不再支持前端输入 Key）：
 
-或直接运行测试脚本：
+<TOML>
+# .streamlit/secrets.toml
+# AI 模型配置
+GEMINI_API_KEY = "你的_Gemini_API_Key"
+# 飞书多维表格配置
+FEISHU_APP_ID = "你的_App_ID"
+FEISHU_APP_SECRET = "你的_App_Secret"
+FEISHU_APP_TOKEN = "你的_多维表格_App_Token"
+FEISHU_TABLE_ID = "你的_数据表_ID"
+3. 运行应用
+<BASH>
+streamlit run app.py
+📁 项目结构 (v2.0)
+<TEXT>
+.
+├── app.py                    # 主程序入口 (包含 UI 和 业务逻辑)
+├── requirements.txt          # 依赖列表
+├── clients/                  # 核心功能模块
+│   ├── gemini_client.py      # Gemini 2.0 Flash 调用封装 (含图片处理)
+│   └── feishu_client.py      # 飞书多维表格读写封装
+├── utils/                    # 工具包
+│   └── ...
+└── .streamlit/
+    └── secrets.toml          # 配置文件 (不要提交到 Git)
+🔧 部署指南 (Streamlit Cloud)
+如果你要将此版本部署到 Streamlit Cloud，请注意以下几点：
 
-```bash
-python tests/test_integration.py
-```
-
-## 📈 性能指标
-
-- **AI 响应时间**：平均 < 3 秒
-- **飞书写入时间**：平均 < 2 秒
-- **智能路由准确率**：100%（能正确识别文本和图片输入）
-- **飞书写入成功率**：> 95%（网络正常条件下）
-
-## 🛡️ 安全注意事项
-
-1. **API 密钥保护**
-   - 不要在代码中硬编码 API 密钥
-   - 不要将 `secrets.toml` 文件提交到版本控制系统
-   - 使用环境变量或安全的密钥管理服务
-
-2. **会话安全**
-   - 应用使用 Streamlit Session State 临时存储配置
-   - 页面刷新或关闭后配置信息自动清除
-   - 符合 BYOK（Bring Your Own Keys）安全原则
-
-3. **网络传输**
-   - 所有 API 调用使用 HTTPS 加密传输
-   - 支持代理配置（可在侧边栏设置）
-
-## 🤝 贡献指南
-
-欢迎提交 Issue 和 Pull Request 来改进这个项目。
-
-1. Fork 项目
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 打开 Pull Request
-
-## 📄 许可证
-
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
-
-## 🙏 致谢
-
-- [DeepSeek](https://www.deepseek.com/) - 提供优秀的文本 AI 模型
-- [Google Gemini](https://deepmind.google/technologies/gemini/) - 提供强大的多模态 AI 能力
-- [飞书开放平台](https://open.feishu.cn/) - 提供稳定的多维表格 API
-- [Streamlit](https://streamlit.io/) - 让 AI 应用开发变得简单
-
----
-
-**项目状态**：✅ 所有核心功能已完成，项目进入部署准备阶段
-
-**最后更新**：2026-02-02
+分支选择：部署时 Branch 务必选择 v2.0-stable。
+配置 Secrets：在 Streamlit Cloud 后台的 "Advanced settings" -> "Secrets" 中填入上述配置。
+网络设置：云端部署不需要代理，请确保代码中没有强制开启 os.environ['HTTPS_PROXY']。
+📜 版本历史
+v2.0-stable (Current):
+移除 DeepSeek，锁定 Gemini 2.0 Flash。
+新增“保存全部历史”功能。
+修复大图上传崩溃 bug。
+移除前端 Key 输入，统一使用 Secrets。
+v1.0 (MVP):
+集成 DeepSeek 和 Gemini 双模型。
+支持前端手动输入 Key。
+🤝 致谢
+Google Gemini - 提供强大的多模态 AI 能力
+Feishu Open Platform - 提供稳定的多维表格 API
+Streamlit - 让 AI 应用开发变得简单
+最后更新：2026-02-03
