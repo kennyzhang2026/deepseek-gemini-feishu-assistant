@@ -1,5 +1,22 @@
 import streamlit as st
 import os
+import platform
+import sys
+# --- 🔥 【核弹级】环境与代理配置 (必须放在最开头) ---
+# 这一步必须在 import 任何网络库之前执行
+system_name = platform.system()
+if system_name == "Windows":
+    # 本地开发环境：开启代理
+    print(f"🖥️ [App] 检测到 {system_name}，开启代理...")
+    os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
+    os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
+else:
+    # 云端/Linux 环境：强力清除所有代理
+    print(f"☁️ [App] 检测到 {system_name}，执行去代理操作...")
+    for key in ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']:
+        if key in os.environ:
+            del os.environ[key]
+# ------------------------------------------------
 import time
 from PIL import Image
 

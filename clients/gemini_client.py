@@ -1,31 +1,15 @@
 from google import genai
 from google.genai import types
-import platform  # <--- 关键！报错就是因为缺这一行
 import streamlit as st
-import os
 import PIL.Image
-from datetime import datetime
+import io
 
-# --- 强制代理 (保持不变) ---
-#os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
-#os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
-# --- 智能代理设置 ---
-# 如果检测到是 Windows 系统 (你的本地电脑)，就开启代理
-# 如果是 Linux 系统 (Streamlit Cloud 云端)，就不开启
-system_name = platform.system()
-if system_name == "Windows":
-    print("🖥️ 检测到本地 Windows 环境，已自动开启代理...")
-    os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
-    os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
-else:
-    print("☁️ 检测到云端/Linux 环境，使用直连模式...")
-    # 确保云端没有残留的代理设置
-    if 'HTTPS_PROXY' in os.environ: del os.environ['HTTPS_PROXY']
-    if 'HTTP_PROXY' in os.environ: del os.environ['HTTP_PROXY']
-# ------------------
+# 注意：这里删除了所有 platform 和 os.environ 的代理代码
+# 因为 app.py 已经在程序启动第一行帮我们处理好了！
 
 class GeminiClient:
     def __init__(self, api_key=None):
+        # 优先从传入参数获取，否则从 secrets 获取
         self.api_key = api_key or st.secrets.get("GEMINI_API_KEY")
         if not self.api_key:
             raise ValueError("未找到 Gemini API Key")
@@ -33,7 +17,7 @@ class GeminiClient:
         try:
             # 初始化客户端
             self.client = genai.Client(api_key=self.api_key)
-            # 强制固定模型，不再动态选择，确保稳定
+            # 强制固定模型
             self.model_name = "gemini-2.0-flash" 
             print(f"DEBUG: 客户端初始化成功，锁定模型: {self.model_name}")
         except Exception as e:
@@ -41,14 +25,14 @@ class GeminiClient:
             raise e
 
     def _compress_image(self, image_file):
-        """
-        压缩图片防止 Server disconnected 或超时。
-        将尺寸限制更严格一点 (800px)，提高成功率。
-        """
+        """保留你的压缩逻辑"""
         try:
-            image_file.seek(0)
+            # 如果是 BytesIO 对象，重置指针
+            if hasattr(image_file, 'seek'):
+                image_file.seek(0)
+            
             img = PIL.Image.open(image_file).convert('RGB')
-            max_size = 800  # 缩小一点尺寸，防止包体过大断开连接
+            max_size = 800
             
             # 如果图片本来就小，就不动
             if max(img.size) <= max_size:
@@ -59,13 +43,16 @@ class GeminiClient:
             return img
         except Exception as e:
             print(f"WARN: 图片压缩失败，使用原图: {e}")
+            # 如果出错，重新打开并返回
+            if hasattr(image_file, 'seek'):
+                image_file.seek(0)
             return PIL.Image.open(image_file)
 
     def _build_history(self, chat_history):
-        """构建纯文本历史上下文"""
+        """保留你的历史记录构建逻辑"""
         contents = []
         for msg in chat_history:
-            # 跳过包含图片的旧消息，避免旧图片导致上下文格式错误
+            # 跳过包含图片的旧消息
             if "image" in msg and msg["image"]:
                 continue
                 
@@ -104,7 +91,7 @@ class GeminiClient:
             img = self._compress_image(image_file)
             
             print(f"DEBUG: 发送图片请求...")
-            # 2. 发送请求 (Gemini 2.0 Flash 对图片支持很好)
+            # 2. 发送请求
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=[prompt, img]
