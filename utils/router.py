@@ -24,14 +24,14 @@ class Router:
         注册客户端
         
         Args:
-            client_type: 客户端类型 ('deepseek' 或 'gemini')
+            client_type: 客户端类型 ('gemini')
             client: 客户端实例
         """
         self.clients[client_type] = client
         logger.info(f"已注册 {client_type} 客户端")
     
-    def route(self, 
-              message: str, 
+    def route(self,
+              message: str,
               image_input: Optional[Union[str, bytes, Image.Image]] = None,
               **kwargs) -> Dict[str, Any]:
         """
@@ -45,51 +45,10 @@ class Router:
         Returns:
             Dict 包含响应内容和路由信息
         """
-        # 判断输入类型
-        if image_input is not None:
-            # 有图片输入，使用 Gemini
-            return self._call_gemini(message, image_input, **kwargs)
-        else:
-            # 纯文本输入，使用 DeepSeek
-            return self._call_deepseek(message, **kwargs)
+        # 无论是否有图片，都使用 Gemini（因为只有 Gemini 支持图片）
+        return self._call_gemini(message, image_input, **kwargs)
     
-    def _call_deepseek(self, message: str, **kwargs) -> Dict[str, Any]:
-        """
-        调用 DeepSeek 处理文本
-        
-        Args:
-            message: 用户输入的消息
-            **kwargs: 其他参数
-            
-        Returns:
-            Dict 包含响应内容
-        """
-        if 'deepseek' not in self.clients:
-            return {
-                "success": False,
-                "error": "DeepSeek 客户端未注册",
-                "content": None,
-                "model": "deepseek",
-                "routed": False
-            }
-        
-        try:
-            client = self.clients['deepseek']
-            result = client.get_response(message, **kwargs)
-            result["model"] = "deepseek"
-            result["routed"] = True
-            return result
-        except Exception as e:
-            logger.error(f"DeepSeek 调用失败: {e}")
-            return {
-                "success": False,
-                "error": f"DeepSeek 调用失败: {str(e)}",
-                "content": None,
-                "model": "deepseek",
-                "routed": False
-            }
-    
-    def _call_gemini(self, 
+    def _call_gemini(self,
                     prompt: str, 
                     image_input: Union[str, bytes, Image.Image],
                     **kwargs) -> Dict[str, Any]:
@@ -129,8 +88,8 @@ class Router:
                 "routed": False
             }
     
-    def get_route_info(self, 
-                      message: str, 
+    def get_route_info(self,
+                      message: str,
                       image_input: Optional[Union[str, bytes, Image.Image]] = None) -> Dict[str, Any]:
         """
         获取路由信息（不实际调用）
@@ -146,8 +105,8 @@ class Router:
             model = "gemini"
             reason = "检测到图片输入，使用 Gemini 进行图片理解"
         else:
-            model = "deepseek"
-            reason = "纯文本输入，使用 DeepSeek 进行文本对话"
+            model = "gemini"
+            reason = "纯文本输入，使用 Gemini 进行文本对话"
         
         return {
             "model": model,
@@ -167,7 +126,7 @@ def should_use_gemini(image_input: Optional[Union[str, bytes, Image.Image]] = No
     Returns:
         bool: 是否使用 Gemini
     """
-    return image_input is not None
+    return True
 
 
 def get_appropriate_model(image_input: Optional[Union[str, bytes, Image.Image]] = None) -> str:
@@ -178,9 +137,9 @@ def get_appropriate_model(image_input: Optional[Union[str, bytes, Image.Image]] 
         image_input: 图片输入
         
     Returns:
-        str: 模型名称 ('deepseek' 或 'gemini')
+        str: 模型名称 ('gemini')
     """
-    return "gemini" if image_input is not None else "deepseek"
+    return "gemini"
 
 
 # 测试代码

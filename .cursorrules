@@ -1,0 +1,32 @@
+# Project: DeepSeek & Gemini Feishu Assistant (Phase 2: Gemini Refactoring)
+
+## 1. Project Overview
+这是一个基于 Streamlit 的 AI 助手，集成 Google Gemini 1.5 Flash 模型和飞书多维表格（Feishu Bitable）。
+目标是创建一个轻量级、无需 LangChain 复杂依赖的纯净应用。
+
+## 2. Tech Stack
+- **Frontend**: Streamlit
+- **AI Model**: Google Gemini 1.5 Flash (via `google-generativeai` SDK)
+- **Database**: Feishu Bitable (via `requests`)
+- **Config**: `.streamlit/secrets.toml` (Strictly enforced)
+
+## 3. Critical Rules (DO NOT BREAK)
+1.  **NO DEEPSEEK**: 严禁引入任何 DeepSeek 相关的代码、库或 API 调用。
+2.  **NO LANGCHAIN**: 严禁使用 LangChain。必须直接使用 `google.generativeai` 官方库。
+3.  **Secrets Management**: 
+    - 所有敏感信息（API Keys, Token, ID）必须通过 `st.secrets` 读取。
+    - 严禁在代码中硬编码 Key。
+    - 必须包含 `check_secrets_configuration` 检查逻辑。
+4.  **UI/UX**: 
+    - 保持界面简洁，当前只关注 Gemini 功能。
+    - 侧边栏不再显示 API Key 输入框（因为已强制使用 Secrets）。
+
+## 4. Current Phase: Phase 2.2 (Engine Upgrade)
+- 升级模型为 `gemini-1.5-flash`。
+- 优化 System Prompt，定义清晰的助手人设。
+- 确保代码架构解耦：`app.py` 负责 UI，`clients/` 负责 API 交互。
+
+## 5. Coding Style
+- Python 3.10+
+- 使用 Type Hints。
+- 每次修改关键逻辑后，必须运行测试脚本验证。
