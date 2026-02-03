@@ -21,8 +21,8 @@ import time
 from PIL import Image
 
 # --- 强制代理 ---
-os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
-os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
+#os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
+#os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
 
 from clients.gemini_client import GeminiClient
 from clients.feishu_client import FeishuClient
