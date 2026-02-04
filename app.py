@@ -31,19 +31,24 @@ st.set_page_config(page_title="AI 全能助手", layout="wide", initial_sidebar_
 # ... 你的 st.set_page_config(...) 代码 ...
 
 # --- 隐藏 Streamlit 默认的汉堡菜单、页脚和顶部栏 ---
+# --- 隐藏 Streamlit 默认样式 (加强版) ---
 hide_streamlit_style = """
 <style>
-    /* 隐藏右上角的三点菜单 */
+    /* 1. 隐藏右上角三点菜单 */
     #MainMenu {visibility: hidden;}
     
-    /* 隐藏底部的 "Made with Streamlit" */
+    /* 2. 隐藏底部 "Made with Streamlit" */
     footer {visibility: hidden;}
     
-    /* 隐藏顶部的横条 (包含 Share, Edit, GitHub 等按钮) */
+    /* 3. 隐藏顶部彩条 header */
     header {visibility: hidden;}
+    
+    /* 4. 专门隐藏 "Manage app" 按钮 (这是关键!) */
+    .stDeployButton {display:none;}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 
 # ... 后面接着写你的其余代码 ...
 
