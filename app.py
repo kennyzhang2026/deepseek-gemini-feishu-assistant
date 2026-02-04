@@ -1,4 +1,6 @@
 import streamlit as st
+st.error("能看到这句话吗？如果看不到，说明服务器卡死了！")
+
 import os
 import platform
 import sys
