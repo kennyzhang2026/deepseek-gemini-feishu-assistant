@@ -1,71 +1,66 @@
 import streamlit as st
-st.error("能看到这句话吗？如果看不到，说明服务器卡死了！")
-
 import os
 import platform
 import sys
-# --- 🔥 【核弹级】环境与代理配置 (必须放在最开头) ---
-# 这一步必须在 import 任何网络库之前执行
-system_name = platform.system()
-if system_name == "Windows":
-    # 本地开发环境：开启代理
-    print(f"🖥️ [App] 检测到 {system_name}，开启代理...")
-    os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
-    os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
-else:
-    # 云端/Linux 环境：强力清除所有代理
-    print(f"☁️ [App] 检测到 {system_name}，执行去代理操作...")
-    for key in ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']:
-        if key in os.environ:
-            del os.environ[key]
-# ------------------------------------------------
 import time
 from PIL import Image
-
-# --- 强制代理 ---
-#os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
-#os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
-
 from clients.gemini_client import GeminiClient
 from clients.feishu_client import FeishuClient
 
+# --- 1. 页面基础配置 (必须是第一个 st 命令) ---
 st.set_page_config(page_title="AI 全能助手", layout="wide", initial_sidebar_state="expanded")
-# ... 你的 st.set_page_config(...) 代码 ...
 
-# --- 隐藏 Streamlit 默认的汉堡菜单、页脚和顶部栏 ---
-# --- 隐藏 Streamlit 默认样式 (加强版) ---
-# --- 隐藏 Streamlit 默认样式 (最终清爽版) ---
-# --- 最终终结版 CSS ---
+# --- 2. 🔥【核弹级】CSS 样式注入 (最优先执行) ---
+# 解释：这里加入了 viewerBadge 选择器，专门杀新版的红框
 hide_streamlit_style = """
 <style>
-    /* 1. 全局隐藏 footer 容器 */
-    footer {visibility: hidden !important; display: none !important;}
+    /* =================================
+       第一部分：隐藏顶部导航栏
+       ================================= */
+    /* 隐藏顶部的 "Manage app" 黑条和汉堡菜单容器 */
+    [data-testid="stHeader"] {display: none !important;}
+    header {visibility: hidden !important;}
+    #MainMenu {visibility: hidden !important;}
+
+    /* =================================
+       第二部分：隐藏底部红框 (关键)
+       ================================= */
+    /* 针对新版 Streamlit：隐藏所有类名包含 viewerBadge 的元素 (就是那个红框) */
+    div[class*="viewerBadge"] {display: none !important;}
     
-    /* 2. 隐藏右上角菜单和顶部 */
-    #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
-    
-    /* 3. 专门针对 "Hosted with Streamlit" (它是 footer 里的一个链接) */
-    footer a {display: none !important;}
-    
-    /* 4. 暴力隐藏所有指向 streamlit.io 的链接 (防止它改头换面) */
+    /* 针对旧版或其他变体：隐藏所有指向官网的链接 */
     a[href*="streamlit.io"] {display: none !important;}
     
-    /* 5. 隐藏部署按钮 */
-    .stDeployButton {display:none;}
-    
-    /* 6. 补充：针对新版界面的浮动按钮容器 */
+    /* =================================
+       第三部分：隐藏底部 Footer 和 装饰条
+       ================================= */
+    footer {display: none !important;}
+    [data-testid="stDecoration"] {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important;}
+    .stDeployButton {display:none !important;}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
+# --- 3. 验证部署是否成功的提示条 ---
+# 如果你看到了这个红条，说明新代码已经生效了！(确认生效后可以注释掉这行)
+st.error("【调试信息】代码已更新！如果底部没有红框，说明 CSS 生效了！")
 
+# --- 4. 环境与代理配置 ---
+system_name = platform.system()
+if system_name == "Windows":
+    # 本地开发环境
+    print(f"🖥️ [App] 检测到 {system_name}，开启代理...")
+    os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
+    os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
+else:
+    # 云端环境
+    print(f"☁️ [App] 检测到 {system_name}，清除代理...")
+    for key in ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']:
+        if key in os.environ:
+            del os.environ[key]
 
-
-# ... 后面接着写你的其余代码 ...
-
-# --- 初始化 ---
+# --- 5. 初始化 Session State ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -75,7 +70,7 @@ if "gemini_client" not in st.session_state:
     except Exception as e:
         st.error(f"无法连接 AI 服务: {e}")
 
-# ================= 侧边栏：控制与保存 =================
+# ================= 6. 侧边栏：控制与保存 =================
 with st.sidebar:
     st.title("🎛️ 控制面板")
     
@@ -87,7 +82,7 @@ with st.sidebar:
     
     st.divider()
 
-    # 2. 飞书存档 (功能升级)
+    # 2. 飞书存档
     st.subheader("2. 飞书存档")
     
     col_save_1, col_save_2 = st.columns(2)
@@ -95,9 +90,9 @@ with st.sidebar:
     # --- 按钮 A: 存最近一轮 ---
     with col_save_1:
         if st.button("💾 存最近一轮"):
-            # 寻找最近的一对 User/Assistant 对话
             last_user = ""
             last_ai = ""
+            # 倒序查找最近的一对
             if len(st.session_state.messages) >= 2:
                 for m in reversed(st.session_state.messages):
                     if m['role'] == 'user' and not last_user: last_user = m['content']
@@ -118,7 +113,7 @@ with st.sidebar:
             else:
                 st.warning("没有可保存的对话")
 
-    # --- 按钮 B: 存全部历史 (新开发功能) ---
+    # --- 按钮 B: 存全部历史 ---
     with col_save_2:
         if st.button("📚 存全部历史"):
             msgs = st.session_state.messages
@@ -128,16 +123,10 @@ with st.sidebar:
                 try:
                     feishu = FeishuClient(st.secrets["FEISHU_APP_ID"], st.secrets["FEISHU_APP_SECRET"], st.secrets["FEISHU_APP_TOKEN"])
                     
-                    # 进度条
                     progress_bar = st.progress(0)
                     status_text = st.empty()
                     
-                    # 逻辑：遍历历史，找到成对的 User -> Assistant
-                    # 假设对话顺序通常是 User, Assistant, User, Assistant...
-                    count = 0
                     total_pairs = len(msgs) // 2
-                    
-                    # 使用 while 循环来匹配问答对
                     i = 0
                     saved_count = 0
                     
@@ -145,28 +134,20 @@ with st.sidebar:
                         current_msg = msgs[i]
                         next_msg = msgs[i+1]
                         
-                        # 只有当这是 "User 提问" 且下一条是 "Assistant 回答" 时才保存
                         if current_msg['role'] == 'user' and next_msg['role'] == 'assistant':
-                            
-                            # 准备内容
                             u_text = current_msg['content']
                             a_text = next_msg['content']
                             
                             status_text.text(f"正在保存第 {saved_count + 1} 组对话...")
-                            
-                            # 发送保存请求
                             records = feishu.format_chat_record(u_text, a_text, "Gemini-2.0-Flash[History]")
                             feishu.add_record_to_bitable(st.secrets["FEISHU_TABLE_ID"], records)
                             
                             saved_count += 1
-                            # 更新进度条
                             if total_pairs > 0:
                                 progress_bar.progress(min(saved_count / total_pairs, 1.0))
                             
-                            # 跳过这两条，继续找下一对
                             i += 2 
                         else:
-                            # 如果顺序不对（比如连续两条 User），就跳过这一条
                             i += 1
                     
                     progress_bar.empty()
@@ -181,25 +162,24 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-# ================= 主界面 =================
+# ================= 7. 主界面逻辑 =================
 
 st.header("🤖 AI 助手 (Gemini 2.0 Flash)")
 
-# 显示历史
+# 显示历史消息
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         if "image" in message and message["image"]:
             st.image(message["image"], width=250)
         st.markdown(message["content"])
 
-# 输入框
+# 输入处理
 if prompt := st.chat_input("输入你的问题..."):
     if "gemini_client" not in st.session_state:
         st.error("请刷新页面重试")
     else:
-        # 用户消息
+        # 1. 显示用户消息
         user_msg = {"role": "user", "content": prompt}
-        
         if uploaded_file:
             uploaded_file.seek(0)
             img_show = Image.open(uploaded_file)
@@ -213,7 +193,7 @@ if prompt := st.chat_input("输入你的问题..."):
         
         st.session_state.messages.append(user_msg)
 
-        # AI 回复
+        # 2. 生成 AI 回复
         with st.chat_message("assistant"):
             msg_box = st.empty()
             msg_box.markdown("Thinking...")
@@ -223,15 +203,14 @@ if prompt := st.chat_input("输入你的问题..."):
                     # 图片模式
                     response = st.session_state.gemini_client.analyze_image(uploaded_file, prompt)
                 else:
-                    # 文本模式 (过滤掉图片，防止历史记录报错)
+                    # 文本模式 (过滤掉图片对象)
                     text_history = [m for m in st.session_state.messages if "image" not in m][:-1]
                     response = st.session_state.gemini_client.generate_content(prompt, chat_history=text_history)
                 
                 msg_box.markdown(response)
                 st.session_state.messages.append({"role": "assistant", "content": response})
                 
-                st.toast("回复完成，可点击左侧保存", icon="✅")
+                st.toast("回复完成", icon="✅")
 
             except Exception as e:
                 msg_box.error(f"Error: {e}")
-
