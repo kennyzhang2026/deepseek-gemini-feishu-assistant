@@ -33,25 +33,31 @@ st.set_page_config(page_title="AI 全能助手", layout="wide", initial_sidebar_
 # --- 隐藏 Streamlit 默认的汉堡菜单、页脚和顶部栏 ---
 # --- 隐藏 Streamlit 默认样式 (加强版) ---
 # --- 隐藏 Streamlit 默认样式 (最终清爽版) ---
+# --- 最终终结版 CSS ---
 hide_streamlit_style = """
 <style>
-    /* 1. 隐藏右上角三点菜单 */
-    #MainMenu {visibility: hidden;}
-    
-    /* 2. 隐藏顶部彩条 header */
-    header {visibility: hidden;}
-    
-    /* 3. 隐藏 "Manage app" 按钮 */
-    .stDeployButton {display:none;}
-    
-    /* 4. 彻底隐藏底部 "Hosted with Streamlit" (那个红色的框) */
+    /* 1. 全局隐藏 footer 容器 */
     footer {visibility: hidden !important; display: none !important;}
     
-    /* 5. 补充针对 footer 容器的隐藏 */
-    [data-testid="stFooter"] {display: none !important;}
+    /* 2. 隐藏右上角菜单和顶部 */
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* 3. 专门针对 "Hosted with Streamlit" (它是 footer 里的一个链接) */
+    footer a {display: none !important;}
+    
+    /* 4. 暴力隐藏所有指向 streamlit.io 的链接 (防止它改头换面) */
+    a[href*="streamlit.io"] {display: none !important;}
+    
+    /* 5. 隐藏部署按钮 */
+    .stDeployButton {display:none;}
+    
+    /* 6. 补充：针对新版界面的浮动按钮容器 */
+    [data-testid="stStatusWidget"] {display: none !important;}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 
 
 
