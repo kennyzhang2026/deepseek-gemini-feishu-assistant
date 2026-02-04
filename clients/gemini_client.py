@@ -4,9 +4,6 @@ import streamlit as st
 import PIL.Image
 import io
 
-# 注意：这里删除了所有 platform 和 os.environ 的代理代码
-# 因为 app.py 已经在程序启动第一行帮我们处理好了！
-
 class GeminiClient:
     def __init__(self, api_key=None):
         # 优先从传入参数获取，否则从 secrets 获取
@@ -17,8 +14,10 @@ class GeminiClient:
         try:
             # 初始化客户端
             self.client = genai.Client(api_key=self.api_key)
-            # 强制固定模型
-            self.model_name = "gemini-2.0-flash" 
+            
+            # --- 🔥 关键修改：切换为 Gemini 1.5 Pro (最强逻辑版) ---
+            self.model_name = "gemini-1.5-pro" 
+            
             print(f"DEBUG: 客户端初始化成功，锁定模型: {self.model_name}")
         except Exception as e:
             print(f"ERROR: 客户端初始化失败: {e}")
@@ -52,7 +51,7 @@ class GeminiClient:
         """保留你的历史记录构建逻辑"""
         contents = []
         for msg in chat_history:
-            # 跳过包含图片的旧消息
+            # 跳过包含图片的旧消息，避免混淆文本历史
             if "image" in msg and msg["image"]:
                 continue
                 
@@ -75,7 +74,7 @@ class GeminiClient:
                 parts=[types.Part.from_text(text=prompt)]
             ))
 
-            print(f"DEBUG: 发送文本请求...")
+            print(f"DEBUG: 发送文本请求 (Model: {self.model_name})...")
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=history_contents
@@ -90,7 +89,7 @@ class GeminiClient:
             # 1. 压缩图片
             img = self._compress_image(image_file)
             
-            print(f"DEBUG: 发送图片请求...")
+            print(f"DEBUG: 发送图片请求 (Model: {self.model_name})...")
             # 2. 发送请求
             response = self.client.models.generate_content(
                 model=self.model_name,
@@ -99,4 +98,3 @@ class GeminiClient:
             return response.text
         except Exception as e:
             return f"图片分析失败: {str(e)}"
-
