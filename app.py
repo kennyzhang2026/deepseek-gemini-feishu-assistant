@@ -28,6 +28,24 @@ from clients.gemini_client import GeminiClient
 from clients.feishu_client import FeishuClient
 
 st.set_page_config(page_title="AI 全能助手", layout="wide", initial_sidebar_state="expanded")
+# ... 你的 st.set_page_config(...) 代码 ...
+
+# --- 隐藏 Streamlit 默认的汉堡菜单、页脚和顶部栏 ---
+hide_streamlit_style = """
+<style>
+    /* 隐藏右上角的三点菜单 */
+    #MainMenu {visibility: hidden;}
+    
+    /* 隐藏底部的 "Made with Streamlit" */
+    footer {visibility: hidden;}
+    
+    /* 隐藏顶部的横条 (包含 Share, Edit, GitHub 等按钮) */
+    header {visibility: hidden;}
+</style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+# ... 后面接着写你的其余代码 ...
 
 # --- 初始化 ---
 if "messages" not in st.session_state:
