@@ -12,32 +12,41 @@ st.set_page_config(page_title="AI 全能助手", layout="wide", initial_sidebar_
 
 # --- 2. 🔥【核弹级】CSS 样式注入 (最优先执行) ---
 # 解释：这里加入了 viewerBadge 选择器，专门杀新版的红框
+# --- 3. 🔥【核弹级】CSS 样式注入 (修正版) ---
 hide_streamlit_style = """
 <style>
     /* =================================
-       第一部分：隐藏顶部导航栏
+       1. 隐藏顶部 (Header & 汉堡菜单)
        ================================= */
-    /* 隐藏顶部的 "Manage app" 黑条和汉堡菜单容器 */
-    [data-testid="stHeader"] {display: none !important;}
     header {visibility: hidden !important;}
+    [data-testid="stHeader"] {display: none !important;}
     #MainMenu {visibility: hidden !important;}
-
-    /* =================================
-       第二部分：隐藏底部红框 (关键)
-       ================================= */
-    /* 针对新版 Streamlit：隐藏所有类名包含 viewerBadge 的元素 (就是那个红框) */
-    div[class*="viewerBadge"] {display: none !important;}
-    
-    /* 针对旧版或其他变体：隐藏所有指向官网的链接 */
-    a[href*="streamlit.io"] {display: none !important;}
     
     /* =================================
-       第三部分：隐藏底部 Footer 和 装饰条
+       2. 隐藏底部通用 Footer
        ================================= */
     footer {display: none !important;}
-    [data-testid="stDecoration"] {display: none !important;}
+    
+    /* =================================
+       3. 智能狙击：隐藏 "Hosted with Streamlit" 红框
+       ================================= */
+    
+    /* 方法A：只要链接里包含 'streamlit' 字样，统统隐藏 */
+    a[href*="streamlit"] {display: none !important;}
+    
+    /* 方法B (大招)：找到包含 streamlit 链接的父级容器，直接连锅端 */
+    /* 这里的 :has 是现代浏览器支持的强力选择器 */
+    div:has(> a[href*="streamlit"]) {display: none !important;}
+    div:has(> a[href*="github"]) {display: none !important;} /* 顺手把 GitHub 标也藏了 */
+    
+    /* 方法C：传统的类名匹配 (保留作为兜底) */
+    div[class*="viewerBadge"] {display: none !important;}
+    
+    /* =================================
+       4. 隐藏右侧的部署按钮 & 状态条
+       ================================= */
+    .stDeployButton {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important;}
-    .stDeployButton {display:none !important;}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
