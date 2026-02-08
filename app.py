@@ -33,6 +33,36 @@ hide_streamlit_style = """
             width: 100% !important;
         }
     }
+    
+    /* 电脑端隐藏飞书存档 */
+    @media (min-width: 641px) {
+        #feishu-mobile {
+            display: none !important;
+        }
+    }
+    
+    /* 手机端飞书存档固定在底部 */
+    @media (max-width: 640px) {
+        #feishu-mobile {
+            display: block !important;
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            background: white !important;
+            padding: 15px 10px !important;
+            border-top: 1px solid #eee !important;
+            z-index: 100 !important;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+            max-height: 200px !important;
+            overflow-y: auto !important;
+        }
+        
+        /* 给主内容区域留出底部空间 */
+        .main {
+            padding-bottom: 220px !important;
+        }
+    }
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
