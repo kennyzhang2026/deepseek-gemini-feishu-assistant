@@ -133,7 +133,30 @@ if prompt := st.chat_input("输入问题..."):
             except Exception as e:
                 msg_box.error(f"Error: {e}")
 
-# ================= 底部工具栏（为手机端用户显示飞书保存功能）=================
+# ================= 飞书存档（仅手机端在最下面显示）=================
+# 用CSS隐藏电脑端，只在手机端显示
+mobile_feishu_css = """
+<style>
+    /* 电脑端隐藏 */
+    @media (min-width: 641px) {
+        #feishu-mobile {
+            display: none !important;
+        }
+    }
+    /* 手机端显示 */
+    @media (max-width: 640px) {
+        #feishu-mobile {
+            display: block !important;
+            margin-top: 20px;
+            padding: 15px 10px;
+        }
+    }
+</style>
+"""
+st.markdown(mobile_feishu_css, unsafe_allow_html=True)
+
+st.markdown('<div id="feishu-mobile">', unsafe_allow_html=True)
+
 st.divider()
 st.markdown("### 💾 飞书存档")
 
@@ -178,5 +201,7 @@ with save_col2:
                 st.toast(f"✅ 已存 {cnt} 条")
             except Exception as e: st.error(f"出错: {e}")
         else: st.warning("无记录")
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 
