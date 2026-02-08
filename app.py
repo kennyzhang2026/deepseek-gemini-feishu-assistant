@@ -176,48 +176,48 @@ if prompt := st.chat_input("输入问题..."):
 
 # ================= 底部工具栏（为手机端用户显示飞书保存功能）=================
 st.divider()
+st.markdown("### 💾 飞书存档")
 
-with st.expander("💾 飞书存档", expanded=False):
-    save_col1, save_col2 = st.columns([1, 1])
-    
-    with save_col1:
-        if st.button("📌 最近一轮", use_container_width=True, key="save_recent"):
-            last_u, last_a = "", ""
-            if len(st.session_state.messages) >= 2:
-                for m in reversed(st.session_state.messages):
-                    if m['role'] == 'user' and not last_u: last_u = m['content']
-                    if m['role'] == 'assistant' and not last_a: last_a = m['content']
-                    if last_u and last_a: break
-            if last_u and last_a:
-                try:
-                    feishu = FeishuClient(st.secrets["FEISHU_APP_ID"], st.secrets["FEISHU_APP_SECRET"], st.secrets["FEISHU_APP_TOKEN"])
-                    m_name = st.session_state.gemini_client.model_name.replace("models/", "")
-                    feishu.add_record_to_bitable(st.secrets["FEISHU_TABLE_ID"], feishu.format_chat_record(last_u, last_a, m_name))
-                    st.toast("✅ 保存成功")
-                except Exception as e: st.error(f"失败: {e}")
-            else: st.warning("无内容")
+save_col1, save_col2 = st.columns(2)
 
-    with save_col2:
-        if st.button("📚 全部历史", use_container_width=True, key="save_all"):
-            msgs = st.session_state.messages
-            if msgs:
-                try:
-                    feishu = FeishuClient(st.secrets["FEISHU_APP_ID"], st.secrets["FEISHU_APP_SECRET"], st.secrets["FEISHU_APP_TOKEN"])
-                    progress = st.progress(0)
-                    cnt = 0
-                    m_name = st.session_state.gemini_client.model_name.replace("models/", "")
-                    total = len(msgs)//2
-                    i=0
-                    while i < len(msgs)-1:
-                        if msgs[i]['role']=='user' and msgs[i+1]['role']=='assistant':
-                            feishu.add_record_to_bitable(st.secrets["FEISHU_TABLE_ID"], feishu.format_chat_record(msgs[i]['content'], msgs[i+1]['content'], f"{m_name}[Hist]"))
-                            cnt+=1
-                            if total>0: progress.progress(min(cnt/total, 1.0))
-                            i+=2
-                        else: i+=1
-                    progress.empty()
-                    st.toast(f"✅ 已存 {cnt} 条")
-                except Exception as e: st.error(f"出错: {e}")
-            else: st.warning("无记录")
+with save_col1:
+    if st.button("📌 存最近一轮", use_container_width=True, key="save_recent"):
+        last_u, last_a = "", ""
+        if len(st.session_state.messages) >= 2:
+            for m in reversed(st.session_state.messages):
+                if m['role'] == 'user' and not last_u: last_u = m['content']
+                if m['role'] == 'assistant' and not last_a: last_a = m['content']
+                if last_u and last_a: break
+        if last_u and last_a:
+            try:
+                feishu = FeishuClient(st.secrets["FEISHU_APP_ID"], st.secrets["FEISHU_APP_SECRET"], st.secrets["FEISHU_APP_TOKEN"])
+                m_name = st.session_state.gemini_client.model_name.replace("models/", "")
+                feishu.add_record_to_bitable(st.secrets["FEISHU_TABLE_ID"], feishu.format_chat_record(last_u, last_a, m_name))
+                st.toast("✅ 保存成功")
+            except Exception as e: st.error(f"失败: {e}")
+        else: st.warning("无内容")
+
+with save_col2:
+    if st.button("📚 存全部历史", use_container_width=True, key="save_all"):
+        msgs = st.session_state.messages
+        if msgs:
+            try:
+                feishu = FeishuClient(st.secrets["FEISHU_APP_ID"], st.secrets["FEISHU_APP_SECRET"], st.secrets["FEISHU_APP_TOKEN"])
+                progress = st.progress(0)
+                cnt = 0
+                m_name = st.session_state.gemini_client.model_name.replace("models/", "")
+                total = len(msgs)//2
+                i=0
+                while i < len(msgs)-1:
+                    if msgs[i]['role']=='user' and msgs[i+1]['role']=='assistant':
+                        feishu.add_record_to_bitable(st.secrets["FEISHU_TABLE_ID"], feishu.format_chat_record(msgs[i]['content'], msgs[i+1]['content'], f"{m_name}[Hist]"))
+                        cnt+=1
+                        if total>0: progress.progress(min(cnt/total, 1.0))
+                        i+=2
+                    else: i+=1
+                progress.empty()
+                st.toast(f"✅ 已存 {cnt} 条")
+            except Exception as e: st.error(f"出错: {e}")
+        else: st.warning("无记录")
 
 
